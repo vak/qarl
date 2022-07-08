@@ -5,5 +5,13 @@ import numpy as np
 
 class AbstractAgent(ABC):
     @abstractmethod
-    def react(self, feedback: np.ndarray | float) -> np.ndarray | float:
+    def adapt(self, feedback: np.ndarray | float) -> np.ndarray | float:
+        pass
+
+    @abstractmethod
+    def get_current_state(self) -> np.ndarray | float:
+        pass
+
+    @abstractmethod
+    def get_current_step(self) -> np.ndarray | float:
         pass

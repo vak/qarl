@@ -5,5 +5,5 @@ import numpy as np
 
 class AbstractEnvironment(ABC):
     @abstractmethod
-    def assess_the_guess(self, guess: np.ndarray) -> np.ndarray:
+    def get_next_state(self) -> np.ndarray | float:
         pass

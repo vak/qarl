@@ -3,6 +3,8 @@ import numpy as np
 from .abstract_agent import AbstractAgent
 
 
+# TODO: Add value function and policy
+# TODO: Add apply_action function
 class Agent(AbstractAgent):
     def __init__(self, acceleration: np.ndarray, braking: np.ndarray, low_quantile: float = 0.1,
                  high_quantile: float = 0.9, quantile: np.ndarray | None = None, low_initial_value: float = -1e3,
@@ -35,7 +37,7 @@ class Agent(AbstractAgent):
             assert acceleration.shape == initial_step.shape
             self.step = initial_step
 
-    def react(self, feedback: np.ndarray) -> np.ndarray:
+    def adapt(self, feedback: np.ndarray) -> np.ndarray:
         feedback_is_the_same = (self.step * feedback) < 0
 
         # E step
@@ -47,3 +49,9 @@ class Agent(AbstractAgent):
         self.current_value += np.abs(self.step) * (-feedback + 2.0 * self.quantile - 1.0)
 
         return self.current_value
+
+    def get_current_state(self) -> np.ndarray | float:
+        return self.current_value.copy()
+
+    def get_current_step(self) -> np.ndarray | float:
+        return self.step.copy()
