@@ -9,6 +9,7 @@ python = "^3.10"
 numpy = "^1.22.4"
 matplotlib = "^3.5.2"
 jupyterlab = "^3.4.2"
+gym = "^0.24.1"
 
 [tool.poetry.dev-dependencies]
 
