@@ -2,12 +2,13 @@ from abc import ABC, abstractmethod
 from typing import List, TypedDict
 
 import numpy as np
+import torch
 
 
 class GameState(TypedDict):
-    agent_state: np.ndarray
-    agent_step: np.ndarray
-    environment_state: np.ndarray
+    agent_state: np.ndarray | torch.Tensor
+    agent_step: np.ndarray | torch.Tensor
+    environment_state: np.ndarray | torch.Tensor
 
 
 class AbstractGame(ABC):

@@ -1,4 +1,4 @@
-import numpy as np
+import torch
 
 from .abstract_agent import AbstractAgent
 
@@ -6,52 +6,46 @@ from .abstract_agent import AbstractAgent
 # TODO: Add value function and policy
 # TODO: Add apply_action function
 class Agent(AbstractAgent):
-    def __init__(self, acceleration: np.ndarray, braking: np.ndarray, low_quantile: float = 0.1,
-                 high_quantile: float = 0.9, quantile: np.ndarray | None = None, low_initial_value: float = -1e3,
-                 high_initial_value: float = 1e3, initial_value: np.ndarray | None = None, low_initial_step: float = -5,
-                 high_initial_step: float = 5, initial_step: np.ndarray | None = None, seed: int = 0,
-                 min_step: float = 0):
+    def __init__(self, acceleration: torch.Tensor, braking: torch.Tensor, device=torch.device('cpu'),
+                 low_initial_value: float = -1e3, high_initial_value: float = 1e3,
+                 initial_value: torch.Tensor | None = None, low_initial_step: float = -5, high_initial_step: float = 5,
+                 initial_step: torch.Tensor | None = None, seed: int = 0, min_step: float = 0):
         super().__init__()
+        self.n = len(acceleration)
+        self.device = device
         assert acceleration.shape == braking.shape
-        self.acceleration = acceleration
-        self.braking = braking
+        self.acceleration = acceleration.to(self.device)
+        self.braking = braking.to(self.device)
         self.min_step = min_step
 
-        if initial_value is None:
-            np.random.seed(seed)
-            self.current_value = np.random.uniform(low_initial_value, high_initial_value, len(acceleration))
-        else:
-            assert acceleration.shape == initial_value.shape
-            self.current_value = initial_value
+        torch.manual_seed(seed)
+        self.current_value = self._initial_or_random(
+            low_initial_value, high_initial_value, initial_value)
+        self.step = self._initial_or_random(
+            low_initial_step, high_initial_step, initial_step)
 
-        if quantile is None:
-            self.quantile = np.linspace(low_quantile, high_quantile, len(acceleration))
+    def _initial_or_random(self, low: float, high: float, initial: torch.Tensor | None = None):
+        if initial is None:
+            data = (high - low) * torch.rand(self.n) + low
         else:
-            assert acceleration.shape == quantile.shape
-            self.quantile = quantile
+            assert len(initial) == self.n
+            data = initial
+        return data.to(self.device)
 
-        if initial_step is None:
-            np.random.seed(seed)
-            self.step = np.random.uniform(low_initial_step, high_initial_step, len(acceleration))
-        else:
-            assert acceleration.shape == initial_step.shape
-            self.step = initial_step
-
-    def adapt(self, feedback: np.ndarray) -> np.ndarray:
+    def adapt(self, feedback: torch.Tensor) -> torch.Tensor:
         feedback_is_the_same = (self.step * feedback) < 0
-
         # E step
-        self.step *= np.where(feedback_is_the_same, self.acceleration, self.braking)
-        min_step_mask = np.abs(self.step) < self.min_step
-        self.step[min_step_mask] = np.sign(self.step[min_step_mask]) * self.min_step
-
+        self.step *= torch.where(feedback_is_the_same,
+                                 self.acceleration, self.braking)
+        min_step_mask = torch.abs(self.step) < self.min_step
+        self.step[min_step_mask] = torch.sign(
+            self.step[min_step_mask]) * self.min_step
         # M step
-        self.current_value += np.abs(self.step) * (-feedback + 2.0 * self.quantile - 1.0)
-
+        self.current_value += self.step
         return self.current_value
 
-    def get_current_state(self) -> np.ndarray | float:
-        return self.current_value.copy()
+    def get_current_state(self) -> torch.Tensor:
+        return torch.clone(self.current_value)
 
-    def get_current_step(self) -> np.ndarray | float:
-        return self.step.copy()
+    def get_current_step(self) -> torch.Tensor:
+        return torch.clone(self.step)
